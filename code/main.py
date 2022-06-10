@@ -8,7 +8,7 @@ data = pd.read_csv(data_path)
 low = np.array(data['Low'])
 high = np.array(data['High'])
 close = np.array(data['Close'])
-open = np.array(data['Open'])
+opn = np.array(data['Open'])
 vol = np.array(data['Volume'])
 
 nweb.set_hyper_param(1, 10, 0)
