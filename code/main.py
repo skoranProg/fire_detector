@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import nweb
 
+
 data_path = '../data/coffee.csv'
 
 data = pd.read_csv(data_path)
