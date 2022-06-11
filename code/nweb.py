@@ -6,13 +6,14 @@ e = 0.25
 # размер пакета
 n = 10
 # коэффициент регуляризации
-lmbda = 0.1
+lmb = 0.1
 
 
 def set_hyper_param(ee: float, nn: int, l: float):
+    global e, n, lmb
     e = ee
     n = nn
-    lmbda = l
+    lmb = l
 
 
 class NeuronWeb:
@@ -22,7 +23,7 @@ class NeuronWeb:
         self.weights = [np.random.randn(a[i + 1], a[i]) / np.sqrt(a[i]) for i in range(len(a) - 1)]
         self.biases = [np.random.randn(i) for i in a[1:]]
 
-    def run(self, mini_batch: ndarray, size: int):
+    def run(self, mini_batch: list[tuple[ndarray, ndarray]], size: int):
         db = [np.zeros(b.shape) for b in self.biases]
         dw = [np.zeros(w.shape) for w in self.weights]
         for data, i in mini_batch:
@@ -32,7 +33,7 @@ class NeuronWeb:
             for j in range(len(db)):
                 db[j] += ndb[j]
         for i in range(len(dw)):
-            self.weights[i] = (1 - lmbda * e / size) * self.weights[i] - (e / n) * dw[i]
+            self.weights[i] = (1 - lmb * e / size) * self.weights[i] - (e / n) * dw[i]
         for i in range(len(db)):
             self.biases[i] -= (e / n) * db[i]
 
@@ -42,10 +43,9 @@ class NeuronWeb:
         for l in range(len(self.biases)):
             data = sig(np.dot(self.weights[l], np.transpose(data)) + self.biases[l])
             acts[l + 1] = data
-        return np.argmax(data), acts
+        return data, acts
 
-    def correct(self, i: int, acts: list[ndarray]):
-        i = np.array([(1 if i == j else 0) for j in range(10)])
+    def correct(self, i: ndarray, acts: list[ndarray]):
         db = [np.zeros(b.shape) for b in self.biases]
         dw = [np.zeros(w.shape) for w in self.weights]
         i = cost_derivative(acts[-1], i)
@@ -62,6 +62,11 @@ class NeuronWeb:
 #
 # binary entrophy
 # c=-(y*ln(sig(z))+(1-y)ln(1-sig(z)))
+
+def cost_function(y: ndarray, a: ndarray):
+    return -(y * np.log(a) + (1 - y) * np.log(1 - a))
+
+
 def cost_derivative(a: ndarray, y: ndarray):
     return a - y
 
