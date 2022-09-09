@@ -1,5 +1,4 @@
-import cupy as np
-import numpy.random
+import numpy as np
 import pandas as pd
 from numpy.random import shuffle
 import matplotlib.pyplot as plt
@@ -29,40 +28,34 @@ def random_cost():
 
 
 # global variables
-data_path = '../data/coffee.csv'
+data_path = '../data/smoke.csv'
 saved_nw_path = '../saves'
-input_days = 60
-output_days = 1
-amount_of_test_data = 1 / 6
-costs_to_show = []
+test_costs_to_show = []
+train_costs_to_show = []
+dtype = np.float64
 
 # data input
 data = pd.read_csv(data_path)
-low = np.array(data['Low'], dtype=float)
-high = np.array(data['High'], dtype=float)
-close = np.array(data['Close'], dtype=float)
-opn = np.array(data['Open'], dtype=float)
-vol = np.array(data['Volume'], dtype=float)
 
 # data formatting
-f = 200
-x = [np.array(
-    list((low[i:i + input_days] - opn[i]) / f) + list((high[i:i + input_days] - opn[i]) / f) +
-    list((close[i:i + input_days] - opn[i]) / f) + list((opn[i:i + input_days] - opn[i]) / f) +
-    list(np.power(vol[i:i + input_days], 1 / 2) / f))
-    for i in range(data.shape[0] - input_days - output_days)]
-y = [np.array(
-    list((low[i:i + output_days] - opn[i - input_days]) / f) + list((high[i:i + output_days] - opn[i - input_days]) / f)
-    + list((close[i:i + output_days] - opn[i - input_days]) / f) +
-    list((opn[i:i + output_days] - opn[i - input_days]) / f) + list(np.power(vol[i:i + output_days], 1 / 2) / f))
-    for i in range(input_days, data.shape[0] - output_days)]
-np.cuda.Stream.null.synchronize()
-test, train = tts(x, y, amount_of_test_data)
+for i in data.columns:
+    if i == 'Fire Alarm': continue
+    data[i] -= 3 / 2 * np.min(data[i]) - 1
+    data[i] /= 3 / 2 * np.max(data[i]) + 1
+y = data['Fire Alarm'].tolist()
+z = data.drop('Fire Alarm', axis=1)
+for i in range(len(y)):
+    y[i] = np.array(y[i], dtype=dtype).reshape(1)
+x = list(map(lambda a: np.array(a[1], dtype=dtype), z.iterrows()))
+z = None
+del z
+test, train = tts(x, y, 1 / 6)
 x = y = None
+del x, y
 
 # parameters
-arch = [5 * input_days, 5000, 3000, 1000, 5 * output_days]
-shp(1e-5, 1, 0)
+arch = [data.columns.size - 1, 1000, 100, 1]
+shp(1e-4, 1, 0)
 
 # nw creation
 nw = new_nw(arch)
@@ -74,8 +67,8 @@ def iterate(mdl: NeuronWeb, dt=None):
         dt = test
     c = 0
     for tx, ty in dt:
-        c += float(np.sum(nweb.cost_function(ty, mdl.iterate(tx)[0]))) / len(ty)
-    np.cuda.Stream.null.synchronize()
+        c += float(np.sum(nweb.cost_function(ty, mdl.iterate(tx)[0])))
+    # np.cuda.Stream.null.synchronize()
     return c / len(dt)
 
 
@@ -84,21 +77,31 @@ def fit(mdl: NeuronWeb, epochs: int):
         shuffle(train)
         for i in range(0, len(train), nweb.n):
             mdl.run(train[i:i + nweb.n], len(train))
-        np.cuda.Stream.null.synchronize()
-        global costs_to_show
-        costs_to_show += [iterate(mdl)]
-        print(costs_to_show[-1])
+        # np.cuda.Stream.null.synchronize()
+        global test_costs_to_show, train_costs_to_show
+        test_costs_to_show += [iterate(mdl, test)]
+        train_costs_to_show += [0]
+        print(test_costs_to_show[-1])
 
 
-def test_res(a: int):
-    return np.abs((test[a][1] - nw.iterate(test[a][0])[0]) / test[a][1])
+def count(mdl: NeuronWeb, dt=None):
+    if dt is None:
+        dt = test
+    c = 0
+    for tx, ty in dt:
+        c += (1 if (int(round(float(mdl.iterate(tx)[0][0]))) == int(ty)) else 0)
+    return c
 
 
-def show(yh, xl=0, xh=len(costs_to_show), yl=0):
+def show(yh, xl=0, xh=None, yl=0):
+    if xh is None:
+        xh = len(test_costs_to_show)
     plt.ylim(yl, yh)
     plt.xlim(xl, xh)
-    plt.plot(costs_to_show)
+    plt.plot(test_costs_to_show, color='#002dbf')
+    plt.plot(train_costs_to_show, color='#ff8800')
     plt.show()
 
 
-costs_to_show.append(iterate(nw))
+test_costs_to_show.append(iterate(nw, test))
+train_costs_to_show.append(iterate(nw, train))
