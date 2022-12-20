@@ -1,5 +1,5 @@
 import numpy as np
-from cupy import ndarray
+from numpy import ndarray
 import os
 
 # скорость обучения
@@ -84,7 +84,7 @@ class NeuronWeb:
 
     def iterate(self, data: ndarray):
         acts = [np.zeros(i, dtype=dtype) for i in self.a]
-        acts[0] = data
+        acts[0] = sig(data)
         for l in range(len(self.biases)):
             data = sig(np.dot(self.weights[l], np.transpose(data)) + self.biases[l])
             acts[l + 1] = data

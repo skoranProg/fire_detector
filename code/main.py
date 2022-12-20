@@ -54,8 +54,8 @@ x = y = None
 del x, y
 
 # parameters
-arch = [data.columns.size - 1, 1000, 100, 1]
-shp(1e-4, 1, 0)
+arch = [data.columns.size - 1, 100, 200, 1]
+shp(1e-5, 1, 0)
 
 # nw creation
 nw = new_nw(arch)
@@ -68,7 +68,7 @@ def iterate(mdl: NeuronWeb, dt=None):
     c = 0
     for tx, ty in dt:
         c += float(np.sum(nweb.cost_function(ty, mdl.iterate(tx)[0])))
-    # np.cuda.Stream.null.synchronize()
+    #np.cuda.Stream.null.synchronize()
     return c / len(dt)
 
 
@@ -77,7 +77,7 @@ def fit(mdl: NeuronWeb, epochs: int):
         shuffle(train)
         for i in range(0, len(train), nweb.n):
             mdl.run(train[i:i + nweb.n], len(train))
-        # np.cuda.Stream.null.synchronize()
+        #np.cuda.Stream.null.synchronize()
         global test_costs_to_show, train_costs_to_show
         test_costs_to_show += [iterate(mdl, test)]
         train_costs_to_show += [0]
