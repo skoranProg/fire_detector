@@ -80,13 +80,12 @@ class NeuronWeb:
             self.weights[i] = (1 - lmb * e / size) * self.weights[i] - (e / n) * dw[i]
         for i in range(len(db)):
             self.biases[i] -= (e / n) * db[i]
-        #np.cuda.Stream.null.synchronize()
 
     def iterate(self, data: ndarray):
         acts = [np.zeros(i, dtype=dtype) for i in self.a]
         acts[0] = sig(data)
         for l in range(len(self.biases)):
-            data = sig(np.dot(self.weights[l], np.transpose(data)) + self.biases[l])
+            data = sig(np.dot(self.weights[l], data) + self.biases[l])
             acts[l + 1] = data
         return data, acts
 
@@ -95,24 +94,22 @@ class NeuronWeb:
         dw = [np.zeros(w.shape, dtype=dtype) for w in self.weights]
         i = cost_derivative(acts[-1], i)
         for l in range(1, len(self.biases) + 1):
-            #np.cuda.Stream.null.synchronize()
             db[-l] = i
             dw[-l] = np.dot(np.reshape(i, (len(i), 1)), np.reshape(acts[-l - 1], (1, len(acts[-l - 1]))))
             i = np.dot(np.transpose(self.weights[-l]), i) * sig_derivative(acts[-l - 1])
         return dw, db
 
 
-#   dC
-#   --
-#   dz
-#
+
 # binary entropy
 # c=-(y*ln(sig(z))+(1-y)ln(1-sig(z)))
 #
 def cost_function(y: ndarray, a: ndarray):
     return -(y*np.log(a)+(1-y)*np.log(1-a))
 
-
+#   dC
+#   --
+#   dz
 def cost_derivative(a: ndarray, y: ndarray):
     return a - y
 

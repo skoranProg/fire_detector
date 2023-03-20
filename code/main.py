@@ -68,7 +68,6 @@ def iterate(mdl: NeuronWeb, dt=None):
     c = 0
     for tx, ty in dt:
         c += float(np.sum(nweb.cost_function(ty, mdl.iterate(tx)[0])))
-    #np.cuda.Stream.null.synchronize()
     return c / len(dt)
 
 
@@ -77,7 +76,6 @@ def fit(mdl: NeuronWeb, epochs: int):
         shuffle(train)
         for i in range(0, len(train), nweb.n):
             mdl.run(train[i:i + nweb.n], len(train))
-        #np.cuda.Stream.null.synchronize()
         global test_costs_to_show, train_costs_to_show
         test_costs_to_show += [iterate(mdl, test)]
         train_costs_to_show += [0]
